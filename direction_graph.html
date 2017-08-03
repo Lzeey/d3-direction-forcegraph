@@ -9,6 +9,10 @@
     <svg id=""></svg>
 <script>
     var graph = directionGraph("#directionGraph");
+    
+    d3.csv("force.csv", function (error, links) {
+        graph.dataUpdate(links);
+    })
 </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 function directionGraph(divID) {
     /*The graph takes in data in the form of 
     [{'source': XXX, 'target': XXX, 'value': XXX},...]
-    Will compute the unique
+    Will compute the unique nodes from the links automatically
     //Instantiation (does not draw)
     graph = directionGraph('myDivSelector');
     
@@ -15,24 +15,7 @@ function directionGraph(divID) {
     http://bl.ocks.org/mbostock/1153292
     */
     "use strict";
-    // get the data
-    d3.csv("force.csv", function (error, links) {
-        
-        //Compute the unique nodes based on the links
-        function computeUniqueNodes(links) {
-            var nodes = {};
-            links.forEach(function (link) {
-            //Shitty javascript operation here. Return first value if truethy. Otherwise, second value
-            //https://stackoverflow.com/questions/2802055/what-does-the-construct-x-x-y-mean/34707750
-            link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
-            link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
-            link.value = +link.value;
-            });
-            
-            return d3.values(nodes)
-        }
-        
-        var nodes = computeUniqueNodes(links);
+
         
         //Define canvas      
         var width = window.innerWidth,
@@ -75,11 +58,37 @@ function directionGraph(divID) {
           node.fy = null
         })
         
-        console.log(nodes)
-        //Update graph by taking the latest data, and replotting stuff
+        //Data entry point here
+        var links, nodes;
+        
+        graph = function() {
+            return graph
+        }
+        
+        //Method for updating the data from outside this scope
+        graph.dataUpdate = function(data) {
+            links = data;
+            nodes = computeUniqueNodes(links);
+            updateGraph();
+            updateSimulation();
+        }
+        
+        //Compute the unique nodes based on the links
+        function computeUniqueNodes(links) {
+            var nodes = {};
+            links.forEach(function (link) {
+            //Shitty javascript operation here. Return first value if truethy. Otherwise, second value
+            //https://stackoverflow.com/questions/2802055/what-does-the-construct-x-x-y-mean/34707750
+            link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+            link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+            link.value = +link.value;
+            });
+            
+            return d3.values(nodes)
+        }
+        
+        //Internal method for updating graph by taking the latest data, and replotting stuff
         //Uses lexical scoping for graphical elements
-        updateGraph();
-        updateSimulation();        
         function updateGraph() {
             //For links, nodes, and text, we follow the pattern of
             // .data() -> exit().remove() -> enter().append()
@@ -121,7 +130,6 @@ function directionGraph(divID) {
                 .attr("dy", ".35em");
             
             textElements = textEnter.merge(textElements);
-                
             
 //        // build the arrow.
 //        svg.append("svg:defs").selectAll("marker")
@@ -145,20 +153,26 @@ function directionGraph(divID) {
 //            .attr("class", "link")
 //            .attr("marker-end", "url(#end)");
 //
-
-//
-//        // add the nodes
-//        node.append("circle")
-//            .attr("r", 5);
-//
-//        // add the text 
-//        node.append("text")
-//            .attr("x", 12)
-//            .attr("dy", ".35em")
-//            .text(function (d) {
-//                return d.name;
+//        // add the curvy lines
+//        function tick() {
+//            path.attr("d", function (d) {
+//                var dx = d.target.x - d.source.x,
+//                    dy = d.target.y - d.source.y,
+//                    dr = Math.sqrt(dx * dx + dy * dy);
+//                return "M" +
+//                    d.source.x + "," +
+//                    d.source.y + "A" +
+//                    dr + "," + dr + " 0 0,1 " +
+//                    d.target.x + "," +
+//                    d.target.y;
 //            });
-            
+//
+//            node
+//                .attr("transform", function (d) {
+//                    return "translate(" + d.x + "," + d.y + ")";
+//                });
+//        }
+//
         };
         
         //Update simulation. Inlucdes updateGraph, and redefining the 'tick' behaviour
@@ -184,40 +198,6 @@ function directionGraph(divID) {
             simulation.alphaTarget(0.7).restart()
             
         };
-        
-
-        
-        //Trigger update simulation
-        
-        //Return object
-        
-
-//
-//        var svg = d3.select(divID).append("svg")
-//            .attr("width", width)
-//            .attr("height", height);
-//
-
-//
-//        // add the curvy lines
-//        function tick() {
-//            path.attr("d", function (d) {
-//                var dx = d.target.x - d.source.x,
-//                    dy = d.target.y - d.source.y,
-//                    dr = Math.sqrt(dx * dx + dy * dy);
-//                return "M" +
-//                    d.source.x + "," +
-//                    d.source.y + "A" +
-//                    dr + "," + dr + " 0 0,1 " +
-//                    d.target.x + "," +
-//                    d.target.y;
-//            });
-//
-//            node
-//                .attr("transform", function (d) {
-//                    return "translate(" + d.x + "," + d.y + ")";
-//                });
-//        }
-//
-    });
+    
+        return graph
 }
