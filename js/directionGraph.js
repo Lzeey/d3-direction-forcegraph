@@ -28,7 +28,20 @@ function directionGraph(divID) {
         var nodeGroup = svg.append('g').attr('class', 'nodes dirGraph'),
             linkGroup = svg.append('g').attr('class', 'links dirGraph'),
             textGroup = svg.append('g').attr('class', 'texts dirGraph');
-        
+    
+        //Pre-define the arrows here
+        svg.append("defs").selectAll("marker")
+            .data(["end"]) // Different link/path types can be defined here
+            .enter().append("svg:marker") // This section adds in the arrows
+            .attr("id", function(d) {return d})
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 15)
+            .attr("refY", -1.5)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5");        
         //Predefine actual graph elements
         var linkElements, nodeElements, textElements;
         
@@ -69,6 +82,7 @@ function directionGraph(divID) {
         graph.dataUpdate = function(data) {
             links = data;
             nodes = computeUniqueNodes(links);
+            
             updateGraph();
             updateSimulation();
         }
@@ -84,6 +98,9 @@ function directionGraph(divID) {
             link.value = +link.value;
             });
             
+            //FIX HERE
+            //nodes = d3.values(nodes).map(function(node) {return {'id': node}});
+            //console.log(nodes)
             return d3.values(nodes)
         }
         
@@ -94,7 +111,7 @@ function directionGraph(divID) {
             // .data() -> exit().remove() -> enter().append()
             
             linkElements = linkGroup.selectAll("path")
-                .data(links);
+                .data(links, function(link) {return link.source + link.target}); //#Use unique name as ID
                 
             linkElements.exit().remove();
             
@@ -131,19 +148,7 @@ function directionGraph(divID) {
             
             textElements = textEnter.merge(textElements);
             
-//        // build the arrow.
-//        svg.append("svg:defs").selectAll("marker")
-//            .data(["end"]) // Different link/path types can be defined here
-//            .enter().append("svg:marker") // This section adds in the arrows
-//            .attr("id", String)
-//            .attr("viewBox", "0 -5 10 10")
-//            .attr("refX", 15)
-//            .attr("refY", -1.5)
-//            .attr("markerWidth", 6)
-//            .attr("markerHeight", 6)
-//            .attr("orient", "auto")
-//            .append("svg:path")
-//            .attr("d", "M0,-5L10,0L0,5");
+
 //
 //        // add the links and the arrows
 //        var path = svg.append("svg:g").selectAll("path")
