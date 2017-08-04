@@ -1,19 +1,35 @@
 /*Styling for directional force graph*/
 
-path.link {
-  fill: none;
-  stroke: #666;
-  stroke-width: 1.5px;
+.dirGraph>path.link {
+    fill: none;
+    stroke: #666;
+    stroke-width: 1.5px;
 }
 
-circle.node {
-  fill: #ccc;
-  stroke: #fff;
-  stroke-width: 2px;
+.dirGraph>circle.node {
+    fill: #ccc;
+    stroke: #ede;
+    stroke-width: 2.5px;
 }
 
-text {
-  fill: #000;
-  font: 10px sans-serif;
-  pointer-events: none;
+.dirGraph>text {
+    fill: #000;
+    font: 10px sans-serif;
+    pointer-events: none;
+    text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+
+
+/* Various colors for highlighting -- following bootstrap style */
+.dirGraph>path.link.danger {
+    stroke: #a94442;
+    stroke-width: 2.5px;
+}
+
+.dirGraph>path.link.warning {
+    stroke: #8a6d3b;
+}
+
+.dirGraph>path.link.success {
+    stroke: #3c763d;
 }
