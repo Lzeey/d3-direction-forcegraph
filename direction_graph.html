@@ -5,13 +5,36 @@
 <link rel = "stylesheet" type = "text/css" href = "css/directionGraph.css" />
 <script src="js/directionGraph.js"></script>
 <body>
+    <div>
+        <button type="button" id="btn0" style="position:relative">data</button>
+        <button type="button" id="btn1" style="position:relative">data1</button>
+    </div>
     <div id="directionGraph" style="width: 800px;"></div>
 <script>
     var graph = directionGraph("#directionGraph");
     
-    d3.csv("force.csv", function (error, links) {
-        graph.dataUpdate(links);
-    })
+    d3.queue()
+        .defer(d3.csv, "force.csv")
+        .defer(d3.csv, "force2.csv")
+        .await(render)
+        
+    function render(error, data, data1) {
+        graph.dataUpdate(data);
+        
+        var dataBtn = d3.select("#btn0"),
+            dataBtn1 = d3.select("#btn1");
+        
+        dataBtn.on("click", function() {
+            graph.dataUpdate(data);
+        });
+        
+        dataBtn1.on("click", function() {
+           graph.dataUpdate(data1); 
+        });
+        
+    }
+        
+    
 </script>
 </body>
 </html>

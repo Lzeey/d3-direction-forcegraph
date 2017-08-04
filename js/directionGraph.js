@@ -140,7 +140,7 @@ function directionGraph(divID) {
         nodeElements = nodeGroup.selectAll("circle")
             .data(nodes)
         nodeElements.exit().remove();
-
+        console.log(nodeElements);
         var nodeEnter = nodeElements.enter()
             .append("circle")
             .attr("r", 10)
