@@ -53,9 +53,13 @@ function directionGraph(divID) {
         .attr("d", "M0,-5L10,0L0,5"); //Draw triangle here
     //Predefine actual graph elements
     var linkElements, nodeElements, textElements;
-
+    
+    //Data entry point here
+    var links = [], 
+        nodes;
+    
     //Define force simulation objects -> link and sim
-    var linkForce = d3.forceLink()
+    var linkForce = d3.forceLink(links)
         .id(function(d) {return d.id}) //Accessor for name on node [optional];
         .distance(60)
     //.links(links) //Optional - 
@@ -63,7 +67,8 @@ function directionGraph(divID) {
     var simulation = d3.forceSimulation()
         .force("charge", d3.forceManyBody().strength(-20)) //Defines the attraction of all nodes to center (gravity)
         .force("center", d3.forceCenter(width / 2, height / 2)) //Defines position of force center
-        .force("link", linkForce); //Insert link behaviour
+        .force("link", linkForce)
+        .alphaTarget(1); //Insert link behaviour
 
     //Define drag and drop behaviour
     var dragDrop = d3.drag()
@@ -82,38 +87,40 @@ function directionGraph(divID) {
             node.fy = null
         })
 
-    //Data entry point here
-    var links, nodes;
-
+    ///Convenient accessor
     graph = function () {
         return graph
     }
 
     //Method for updating the data from outside this scope
     graph.dataUpdate = function (data) {
-        links = data;
+        //We perform a deep copy to avoid altering the value outside
+        //TODO: Improve performance here if slow
+        //See: https://stackoverflow.com/questions/7486085/copying-array-by-value-in-javascript
+        links = $.extend(true, [], data); //Copy values only, to prevent changing value on outside scope
         nodes = computeUniqueNodes(links);
 
+        //console.log(nodes);
         updateGraph();
         updateSimulation();
     }
 
     //Compute the unique nodes based on the links
-    function computeUniqueNodes(links) {
+    function computeUniqueNodes(input_links) {
         var nodes = {};
+        
         links.forEach(function (link) {
             //Shitty javascript operation here. Return first value if truethy. Otherwise, second value
             //https://stackoverflow.com/questions/2802055/what-does-the-construct-x-x-y-mean/34707750
             link.source = nodes[link.source] || (nodes[link.source] = {
-                name: link.source
+                id: link.source
             });
             link.target = nodes[link.target] || (nodes[link.target] = {
-                name: link.target
+                id: link.target
             });
             link.value = +link.value;
         });
 
-        //FIX HERE
         return d3.values(nodes)
     }
 
@@ -123,11 +130,12 @@ function directionGraph(divID) {
         //For links, nodes, and text, we follow the pattern of
         // .data() -> exit().remove() -> enter().append()
 
-        linkElements = linkGroup.selectAll("path")
+        linkElements = linkGroup.selectAll(".link")
             .data(links, function (link) {
-                return link.source + link.target
-            }); //#Use unique name as ID
-
+                return link.source.id + "-" + link.target.id;
+            }); //#Use unique name as data for reference
+        
+        
         linkElements.exit().remove();
 
         var linkEnter = linkElements.enter()
@@ -137,27 +145,38 @@ function directionGraph(divID) {
         linkElements = linkEnter.merge(linkElements);
 
         // define the nodes
-        nodeElements = nodeGroup.selectAll("circle")
-            .data(nodes)
-        nodeElements.exit().remove();
-        console.log(nodeElements);
+        nodeElements = nodeGroup.selectAll(".node")
+            .data(nodes, function(node) {return node.id})
+        
+        
+        nodeElements.exit().transition()
+            .attr('r',0)
+            .remove();
+        
         var nodeEnter = nodeElements.enter()
             .append("circle")
-            .attr("r", 10)
+            //.attr("r", 10)
             .attr("class", "node")
+            .call(function(node) { node.transition().attr("r", 10); })
             .call(dragDrop);
 
         nodeElements = nodeEnter.merge(nodeElements);
 
         //Text
         textElements = textGroup.selectAll('text')
-            .data(nodes)
-        textElements.exit().remove()
+            .data(nodes, function(node) {return node.id}) //Specify name for constancy
+        textElements.exit().remove();
 
+//        textElements.enter()
+//            .append('text')
+//            .merge(textElements)
+//            .text(function (d) {return d.name})
+//            .attr("x", 12)
+//            .attr("dy", ".55em");
         var textEnter = textElements.enter()
             .append('text')
             .text(function (d) {
-                return d.name
+                return d.id;
             })
             .attr("x", 12)
             .attr("dy", ".35em");
@@ -168,46 +187,28 @@ function directionGraph(divID) {
 
     //Update simulation. Inlucdes updateGraph, and redefining the 'tick' behaviour
     function updateSimulation() {
-        updateGraph();
+        //updateGraph();
 
         simulation.nodes(nodes)
             .on('tick', function () {
                 nodeElements
-                    .attr('cx', function (node) {
-                        return node.x
-                    })
-                    .attr('cy', function (node) {
-                        return node.y
-                    })
+                    .attr('cx', function (node) { return node.x })
+                    .attr('cy', function (node) {return node.y })
                 textElements
-                    .attr('x', function (node) {
-                        return node.x
-                    })
-                    .attr('y', function (node) {
-                        return node.y
-                    })
+                    .attr('x', function (node) {return node.x})
+                    .attr('y', function (node) {return node.y})
                 linkElements.attr("d", linkArc);
-            
-                //For line, use x1/y1, x2/y2
-//                linkElements
-//                    .attr('x1', function (link) {
-//                        return link.source.x
-//                    })
-//                    .attr('y1', function (link) {
-//                        return link.source.y
-//                    })
-//                    .attr('x2', function (link) {
-//                        return link.target.x
-//                    })
-//                    .attr('y2', function (link) {
-//                        return link.target.y
-//                    })
             });
 
-        simulation.force('link').links(links)
-        simulation.alphaTarget(0.7).restart()
+        simulation.force('link').links(links);
+        simulation.alphaTarget(1).restart();
 
     };
+    
+    //Action on each tick of force simulation
+    function ticked() {
+        
+    }
     
     //Define elliptical arc path here - for 'd' attr of path
     function linkArc(d) {

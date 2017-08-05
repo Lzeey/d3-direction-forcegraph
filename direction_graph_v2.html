@@ -3,7 +3,7 @@
 <script src="jquery-3.2.1.min.js"></script>
 <script src="d3.v4.js"></script>
 <link rel = "stylesheet" type = "text/css" href = "css/directionGraph.css" />
-<script src="js/directionGraph.js"></script>
+<script src="js/directionGraph_v2.js"></script>
 <body>
     <div>
         <button type="button" id="btn0" style="position:relative">data</button>
@@ -19,18 +19,18 @@
         .await(render)
         
     function render(error, data, data1) {
-        graph.dataUpdate(data);
-        
-        var dataBtn = d3.select("#btn0"),
-            dataBtn1 = d3.select("#btn1");
-        
-        dataBtn.on("click", function() {
-            graph.dataUpdate(data);
-        });
-        
-        dataBtn1.on("click", function() {
-           graph.dataUpdate(data1); 
-        });
+//        graph.dataUpdate(data);
+//        
+//        var dataBtn = d3.select("#btn0"),
+//            dataBtn1 = d3.select("#btn1");
+//        
+//        dataBtn.on("click", function() {
+//            graph.dataUpdate(data);
+//        });
+//        
+//        dataBtn1.on("click", function() {
+//           graph.dataUpdate(data1); 
+//        });
         
     }
         
