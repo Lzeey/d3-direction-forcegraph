@@ -17,9 +17,8 @@ function directionGraph(divID) {
     https://bl.ocks.org/rofrischmann/0de01de85296591eb45a1dde2040c5a1
     http://bl.ocks.org/mbostock/1153292
     */
-    "use strict";
+    "use strict";    
     
-    //Define canvas
     //TODO: Grab width of parent object
     var parentDOM = d3.select(divID),
         width = parseInt(parentDOM.style('width'), 10),
@@ -57,18 +56,21 @@ function directionGraph(divID) {
     //Data entry point here
     var links = [], 
         nodes;
+
+    //First run
+    var firstRun = true;
     
     //Define force simulation objects -> link and sim
     var linkForce = d3.forceLink(links)
         .id(function(d) {return d.id}) //Accessor for name on node [optional];
-        .distance(60)
+        .distance(70)
     //.links(links) //Optional - 
     
     var simulation = d3.forceSimulation()
         .force("charge", d3.forceManyBody().strength(-20)) //Defines the attraction of all nodes to center (gravity)
         .force("center", d3.forceCenter(width / 2, height / 2)) //Defines position of force center
         .force("link", linkForce)
-        .alphaTarget(1); //Insert link behaviour
+        //.alphaTarget(0.5); //Insert link behaviour
 
     //Define drag and drop behaviour
     var dragDrop = d3.drag()
@@ -87,6 +89,9 @@ function directionGraph(divID) {
             node.fy = null
         })
 
+    //Define transition timing
+    var t = d3.transition().duration(1500);
+    
     ///Convenient accessor
     graph = function () {
         return graph
@@ -105,23 +110,35 @@ function directionGraph(divID) {
         updateSimulation();
     }
 
+    
     //Compute the unique nodes based on the links
-    function computeUniqueNodes(input_links) {
-        var nodes = {};
+    function computeUniqueNodes(links) {
+        //TODO: Function notes
+        //Note: Will modify links in-place
+        var new_nodes = {};
         
         links.forEach(function (link) {
             //Shitty javascript operation here. Return first value if truethy. Otherwise, second value
             //https://stackoverflow.com/questions/2802055/what-does-the-construct-x-x-y-mean/34707750
-            link.source = nodes[link.source] || (nodes[link.source] = {
+            link.source = new_nodes[link.source] || (new_nodes[link.source] = {
                 id: link.source
             });
-            link.target = nodes[link.target] || (nodes[link.target] = {
+            link.target = new_nodes[link.target] || (new_nodes[link.target] = {
                 id: link.target
             });
             link.value = +link.value;
         });
-
-        return d3.values(nodes)
+        
+        new_nodes = d3.values(new_nodes);
+        
+        if (!firstRun) {
+            //Perform left outer join to previous nodes to retain coordinates
+            
+            leftOuterJoin(new_nodes, nodes, "id", "id");
+        }
+        
+        firstRun = false;
+        return new_nodes
     }
 
     //Internal method for updating graph by taking the latest data, and replotting stuff
@@ -135,12 +152,15 @@ function directionGraph(divID) {
                 return link.source.id + "-" + link.target.id;
             }); //#Use unique name as data for reference
         
-        
-        linkElements.exit().remove();
+        linkElements.exit().transition(t)
+            .attr("stroke-opacity", 0)
+            //.attrTween("d", linkArc)
+            .remove();
 
         var linkEnter = linkElements.enter()
             .append("path")
             .attr("class", "link")
+            .call(function(link) { link.transition().attr("stroke-opacity", 1); })
             .attr("marker-end", "url(#end)"); //Reference the defined marker
         linkElements = linkEnter.merge(linkElements);
 
@@ -148,8 +168,7 @@ function directionGraph(divID) {
         nodeElements = nodeGroup.selectAll(".node")
             .data(nodes, function(node) {return node.id})
         
-        
-        nodeElements.exit().transition()
+        nodeElements.exit().transition(t)
             .attr('r',0)
             .remove();
         
@@ -157,7 +176,7 @@ function directionGraph(divID) {
             .append("circle")
             //.attr("r", 10)
             .attr("class", "node")
-            .call(function(node) { node.transition().attr("r", 10); })
+            .call(function(node) {node.transition(t).attr("r", 10)})
             .call(dragDrop);
 
         nodeElements = nodeEnter.merge(nodeElements);
@@ -167,12 +186,6 @@ function directionGraph(divID) {
             .data(nodes, function(node) {return node.id}) //Specify name for constancy
         textElements.exit().remove();
 
-//        textElements.enter()
-//            .append('text')
-//            .merge(textElements)
-//            .text(function (d) {return d.name})
-//            .attr("x", 12)
-//            .attr("dy", ".55em");
         var textEnter = textElements.enter()
             .append('text')
             .text(function (d) {
@@ -180,15 +193,13 @@ function directionGraph(divID) {
             })
             .attr("x", 12)
             .attr("dy", ".35em");
-
         textElements = textEnter.merge(textElements);
-
     };
-
-    //Update simulation. Inlucdes updateGraph, and redefining the 'tick' behaviour
+    
+    //Update simulation. redefining the 'tick' behaviour
     function updateSimulation() {
         //updateGraph();
-
+        
         simulation.nodes(nodes)
             .on('tick', function () {
                 nodeElements
@@ -199,16 +210,11 @@ function directionGraph(divID) {
                     .attr('y', function (node) {return node.y})
                 linkElements.attr("d", linkArc);
             });
-
         simulation.force('link').links(links);
-        simulation.alphaTarget(1).restart();
+        simulation.alpha(0.1).alphaTarget(0.5).restart();
 
     };
     
-    //Action on each tick of force simulation
-    function ticked() {
-        
-    }
     
     //Define elliptical arc path here - for 'd' attr of path
     function linkArc(d) {
@@ -218,6 +224,91 @@ function directionGraph(divID) {
         return "M" + d.source.x + "," + d.source.y + "A" + dr*1.5 + "," + dr*1.5 + " 0 0,1 " + d.target.x + "," + d.target.y;
     }
     
-
+    //For generic left outer join - used for updating data
+    //Modifies the 
+    //See http://learnjsdata.com/combine_data.html
+    //For generic joining, see https://stackoverflow.com/questions/17500312/is-there-some-way-i-can-join-the-contents-of-two-javascript-arrays-much-like-i/17500836#17500836
+    function leftOuterJoin(leftTable, rightTable, leftKey, rightKey) {
+        var l = rightTable.length,
+            m = leftTable.length,
+            lookupIndex = [],
+            output = [],
+            tmp_key,
+            toJoin;
+        //Create lookup table to enable O(m+n) speeds
+        for (var i = 0; i < l; i++) { // loop through l items
+            var row = rightTable[i];
+            lookupIndex[row[rightKey]] = row; // create an index for lookup table
+        }
+        for (var j = 0; j < m; j++) { // loop through m items
+            tmp_key = leftTable[j][leftKey]
+            toJoin = lookupIndex[tmp_key]
+            if (toJoin != undefined) {
+                leftTable[j].x = toJoin.x;
+                leftTable[j].y = toJoin.y;
+                leftTable[j].vx = 0; //toJoin.vx;
+                leftTable[j].vy = 0; //toJoin.vy;
+            }
+//            
+//            var y = leftTable[j];
+//            var x = lookupIndex[y[leftKey]]; // get corresponding row from rightTable
+//            output.push(select(y, x)); // select only the columns you need
+        }
+//        return output;
+    };
+        
+    //==========DEBUGGING    
+//    var a = {id: "a"},
+//        b = {id: "b"},
+//        c = {id: "c"},
+//        //nodes = [a, b, c],
+//        tmp_links = [];
+//
+//    d3.timeout(function() {
+////        links = [{source: a, target: b},{source: b, target: c},{source: c, target: a}]
+//////        nodes = [{id: "a"}, {id: "b"}, {id: "c"}]
+////        nodes = [a, b,c]
+//        tmp_links = [{source: 'a', target: 'b'},
+//                    {source: 'b', target: 'c'},
+//                    {source: 'c', target: 'a'}]
+//////      links.push({source: a, target: b}); // Add a-b.
+//////      links.push({source: b, target: c}); // Add b-c.
+//////      links.push({source: c, target: a}); // Add c-a.
+//      graph.dataUpdate(tmp_links);
+//      updateGraph();
+//      updateSimulation();
+//    }, 1000);
+//
+//    
+//    d3.interval(function() {
+////        nodes = [{id: "a"}, {id: "b"}];
+////        nodes = [a,b]
+////        links = [{source:'a', target: 'b'}]
+//        tmp_links = [{source:'a', target: 'b'}];
+//    graph.dataUpdate(tmp_links);        
+//      updateGraph();
+//      updateSimulation();
+//        console.log("Step1")
+//    }, 2000, d3.now());
+//
+//    d3.interval(function() {
+////        links = [{source: a, target: b},{source: b, target: c},{source: c, target: a}]
+////        nodes = [{id: "a"}, {id: "b"}, {id: "c"}]
+////        nodes = [a,b,c]
+////        console.log(a);
+//      tmp_links = [{source:'a', target: 'b'},
+//              {source: 'b', target: 'c'},
+//              {source:'c', target: 'a'},
+//             {source:'c', target: 'e'}]
+//     graph.dataUpdate(tmp_links);       
+//      updateGraph();
+//      updateSimulation();
+//        console.log("Step2")
+//    }, 3000, d3.now() + 1000);
+    
+    
+    
+    
+    
     return graph
 }
