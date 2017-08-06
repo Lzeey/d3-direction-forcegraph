@@ -55,7 +55,8 @@ function directionGraph(divID) {
     
     //Data entry point here
     var links = [], 
-        nodes;
+        nodes,
+        radius = 10;
 
     //First run
     var firstRun = true;
@@ -176,7 +177,7 @@ function directionGraph(divID) {
             .append("circle")
             //.attr("r", 10)
             .attr("class", "node")
-            .call(function(node) {node.transition(t).attr("r", 10)})
+            .call(function(node) {node.transition(t).attr("r", radius)})
             .call(dragDrop);
 
         nodeElements = nodeEnter.merge(nodeElements);
@@ -203,8 +204,8 @@ function directionGraph(divID) {
         simulation.nodes(nodes)
             .on('tick', function () {
                 nodeElements
-                    .attr('cx', function (node) { return node.x })
-                    .attr('cy', function (node) {return node.y })
+                    .attr('cx', function (node) {return node.x = Math.max(radius, Math.min(width-radius, node.x));})
+                    .attr('cy', function (node) {return node.y = Math.max(radius, Math.min(height-radius, node.y));})
                 textElements
                     .attr('x', function (node) {return node.x})
                     .attr('y', function (node) {return node.y})
