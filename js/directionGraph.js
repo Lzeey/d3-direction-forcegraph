@@ -99,7 +99,7 @@ function directionGraph(divID) {
     }
 
     //Method for updating the data from outside this scope
-    graph.dataUpdate = function (data) {
+    graph.data = function (data) {
         //We perform a deep copy to avoid altering the value outside
         //TODO: Improve performance here if slow
         //See: https://stackoverflow.com/questions/7486085/copying-array-by-value-in-javascript
